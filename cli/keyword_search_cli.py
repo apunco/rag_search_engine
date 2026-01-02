@@ -2,15 +2,7 @@
 
 import argparse
 import json
-import os
 import string
-
-
-def clearEmpty(x, stopwords):
-    if x == "" or x in stopwords:
-        return False
-
-    return True
 
 
 def processString(input: str, stopwords) -> []:
@@ -19,7 +11,38 @@ def processString(input: str, stopwords) -> []:
         str.maketrans('', '', string.punctuation))
 
     tokens = processedString.split(' ')
-    return list(filter(clearEmpty, tokens, stopwords))
+    return list(filter(lambda a: a not in stopwords and a != "", tokens))
+
+
+def search_command(query_string):
+    movies = {}
+
+    with open("data/stopwords.txt", "r") as s:
+        stopwords = s.read().splitlines()
+
+    with open("data/movies.json", "r") as f:
+        movies = json.load(f)
+
+    movies_list = movies["movies"]
+
+    x = 0
+
+    processedQuery = processString(query_string, stopwords)
+
+    for mov in movies_list:
+        processedTitle = processString(mov["title"], stopwords)
+
+        found_match = False
+        for q_tok in processedQuery:
+            if any(q_tok in t_tok for t_tok in processedTitle):
+                found_match = True
+                break
+
+        if found_match:
+            x += 1
+            print(f"{x}. {mov['title']}")
+            if x >= 5:
+                break
 
 
 def main() -> None:
@@ -36,34 +59,7 @@ def main() -> None:
     match args.command:
         case "search":
             print("Searching for: " + args.query)
-            movies = {}
-
-            with open("data/stopwords.txt", "r") as s:
-                stopwords = s.read().splitlines()
-
-            with open("data/movies.json", "r") as f:
-                movies = json.load(f)
-
-            movies_list = movies["movies"]
-
-            x = 0
-
-            processedQuery = processString(args.query, stopwords)
-
-            for mov in movies_list:
-                processedTitle = processString(mov["title"], stopwords)
-
-                found_match = False
-                for q_tok in processedQuery:
-                    if any(q_tok in t_tok for t_tok in processedTitle):
-                        found_match = True
-                        break
-
-                if found_match:
-                    x += 1
-                    print(f"{x}. {mov['title']}")
-                    if x >= 5:
-                        break
+            search_command(args.query)
             pass
         case _:
             parser.print_help()
