@@ -3,47 +3,7 @@
 import argparse
 import json
 import string
-
-
-def processString(input: str, stopwords) -> []:
-    processedString = input.lower()
-    processedString = processedString.translate(
-        str.maketrans('', '', string.punctuation))
-
-    tokens = processedString.split(' ')
-    return list(filter(lambda a: a not in stopwords and a != "", tokens))
-
-
-def search_command(query_string):
-    movies = {}
-
-    with open("data/stopwords.txt", "r") as s:
-        stopwords = s.read().splitlines()
-
-    with open("data/movies.json", "r") as f:
-        movies = json.load(f)
-
-    movies_list = movies["movies"]
-
-    x = 0
-
-    processedQuery = processString(query_string, stopwords)
-
-    for mov in movies_list:
-        processedTitle = processString(mov["title"], stopwords)
-
-        found_match = False
-        for q_tok in processedQuery:
-            if any(q_tok in t_tok for t_tok in processedTitle):
-                found_match = True
-                break
-
-        if found_match:
-            x += 1
-            print(f"{x}. {mov['title']}")
-            if x >= 5:
-                break
-
+from lib.keyword_search import search_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -55,15 +15,17 @@ def main() -> None:
     search_parser.add_argument("query", type=str, help="Search query")
 
     args = parser.parse_args()
-
+    results = []
     match args.command:
         case "search":
             print("Searching for: " + args.query)
-            search_command(args.query)
+            results = search_command(args.query)
             pass
         case _:
             parser.print_help()
 
+    for i, result in enumerate(results, start=1):
+        print(f'{i}. {result["title"]}')
 
 if __name__ == "__main__":
     main()
