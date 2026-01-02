@@ -6,6 +6,22 @@ import os
 import string
 
 
+def clearEmpty(x, stopwords):
+    if x == "" or x in stopwords:
+        return False
+
+    return True
+
+
+def processString(input: str, stopwords) -> []:
+    processedString = input.lower()
+    processedString = processedString.translate(
+        str.maketrans('', '', string.punctuation))
+
+    tokens = processedString.split(' ')
+    return list(filter(clearEmpty, tokens, stopwords))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(
@@ -21,20 +37,33 @@ def main() -> None:
         case "search":
             print("Searching for: " + args.query)
             movies = {}
+
+            with open("data/stopwords.txt", "r") as s:
+                stopwords = s.read().splitlines()
+
             with open("data/movies.json", "r") as f:
                 movies = json.load(f)
 
             movies_list = movies["movies"]
 
             x = 0
+
+            processedQuery = processString(args.query, stopwords)
+
             for mov in movies_list:
+                processedTitle = processString(mov["title"], stopwords)
 
-                if args.query.lower() in mov["title"].lower():
-                    print(f'{x + 1}. {mov["title"]}')
+                found_match = False
+                for q_tok in processedQuery:
+                    if any(q_tok in t_tok for t_tok in processedTitle):
+                        found_match = True
+                        break
+
+                if found_match:
                     x += 1
-
-                if x > 4:
-                    break
+                    print(f"{x}. {mov['title']}")
+                    if x >= 5:
+                        break
             pass
         case _:
             parser.print_help()
@@ -42,10 +71,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-def processString(input: str):
-    processedString = input.lower()
-    processedString = processedString.translate(None, string.punctuation)
-
-    return processedString
