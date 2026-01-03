@@ -5,8 +5,7 @@ from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX
 import pickle
 import os
 
-def processString(input: str) -> list[str]:
-    stopwords = load_stopwords()
+def processString(input: str, stopwords: list[str]) -> list[str]:
     tokens = tokenizeString(input)
     tokens = remove_stop_words(tokens, stopwords)
     tokens = stemStrings(tokens)
@@ -37,7 +36,8 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
         print(e)
         return []
 
-    processedQuery = processString(query)
+    stopwords = load_stopwords()
+    processedQuery = processString(query, stopwords)
     print("query_tokens:", processedQuery)
     ids = set()
 
@@ -64,7 +64,8 @@ class InvertedIndex:
         self.docmap = {}
 
     def __add_document(self, doc_id, text):
-        tokens = processString(text)
+        stopwords = load_stopwords()
+        tokens = processString(text, stopwords)
 
         for token in tokens:
             if token in self.index.keys():
