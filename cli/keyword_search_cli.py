@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
-import string
 from lib.keyword_search import search_command
+from lib.inverted_index import InvertedIndex
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -14,12 +13,24 @@ def main() -> None:
         "search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
 
+    search_parser = subparsers.add_parser(
+        "build", help="Build and cache inverted search index"
+    )
+
     args = parser.parse_args()
     results = []
     match args.command:
         case "search":
             print("Searching for: " + args.query)
             results = search_command(args.query)
+            pass
+        case "build":
+            inverted_index = InvertedIndex()
+            inverted_index.build()
+            inverted_index.save()
+
+            docs = inverted_index.get_documents("Merida")
+            print(f"First document for token 'merida' = {docs[0]}")
             pass
         case _:
             parser.print_help()
