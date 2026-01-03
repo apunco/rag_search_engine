@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from lib.keyword_search import search_command
-from lib.inverted_index import InvertedIndex
+from lib.keyword_search import search_command,InvertedIndex
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -28,9 +27,6 @@ def main() -> None:
             inverted_index = InvertedIndex()
             inverted_index.build()
             inverted_index.save()
-
-            docs = inverted_index.get_documents("Merida")
-            print(f"First document for token 'merida' = {docs[0]}")
             pass
         case _:
             parser.print_help()
