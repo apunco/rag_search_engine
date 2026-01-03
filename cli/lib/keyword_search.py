@@ -2,17 +2,28 @@ import string
 from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
 
-def processString(input: str, stopwords) -> list[str]:
+def processString(input: str, stopwords: list[str]) -> list[str]:
+    tokens = tokenizeString(input)
+    tokens = remove_stop_words(tokens, stopwords)
+    tokens = stemStrings(tokens)
+    return tokens
+
+def tokenizeString(input: str) -> list[str]:
     processedString = input.lower()
     processedString = processedString.translate(
         str.maketrans('', '', string.punctuation))
 
-    tokens = processedString.split(' ')
-    tokens = list(filter(lambda a: a not in stopwords and a != "", tokens))
-    stemmer = PorterStemmer()
-    tokens = list(map(lambda a: stemmer.stem(a), tokens))
-    
+    tokens = processedString.split(' ')  
     return tokens 
+
+def remove_stop_words(input: list[str], stopwords: list[str]) -> list[str]:
+    tokens = list(filter(lambda a: a not in stopwords and a != "", input))
+    return tokens
+
+
+def stemStrings(input: list[str]) -> list[str]:
+    stemmer = PorterStemmer()
+    return list(map(lambda a: stemmer.stem(a), input))
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     stopwords = load_stopwords()
