@@ -5,7 +5,8 @@ from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX
 import pickle
 import os
 
-def processString(input: str, stopwords: list[str]) -> list[str]:
+def processString(input: str) -> list[str]:
+    stopwords = load_stopwords()
     tokens = tokenizeString(input)
     tokens = remove_stop_words(tokens, stopwords)
     tokens = stemStrings(tokens)
@@ -36,13 +37,12 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
         print(e)
         return []
 
-    stopwords = load_stopwords()
-
-    processedQuery = processString(query, stopwords)
+    processedQuery = processString(query)
+    print("query_tokens:", processedQuery)
     ids = set()
 
     for token in processedQuery:
-        docs = inverted_index.get_documents(token)
+        docs = inverted_index.get_documents(token)       
         ids.update(docs)
 
         if len(ids) >= DEFAULT_SEARCH_LIMIT:
@@ -64,7 +64,7 @@ class InvertedIndex:
         self.docmap = {}
 
     def __add_document(self, doc_id, text):
-        tokens = tokenizeString(text)
+        tokens = processString(text)
 
         for token in tokens:
             if token in self.index.keys():
