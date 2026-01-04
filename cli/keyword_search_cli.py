@@ -28,6 +28,13 @@ def main() -> None:
     search_parser.add_argument(
         "term", type=str, help="Term to search frequency for")
 
+    search_parser = subparsers.add_parser(
+        "tfidf", help="Calculate tfidf score for a term"
+    )
+    search_parser.add_argument("docId", type=int, help="Document id")
+    search_parser.add_argument(
+        "term", type=str, help="Term to search frequency for")
+
     args = parser.parse_args()
     results = []
     match args.command:
@@ -42,10 +49,17 @@ def main() -> None:
             inverted_index.build()
             inverted_index.save()
             pass
+        case "tfidf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+            tf_idf = inverted_index.get_term_tfidf(args.docId, args.term)
+            print(
+                f"TF-IDF score of '{args.term}' in document '{args.docId}': {tf_idf:.2f}")
         case "tf":
             inverted_index = InvertedIndex()
             inverted_index.load()
-            print(inverted_index.get_tf(args.docId, args.term))
+            idf = inverted_index.get_term_idf(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
         case "idf":
             inverted_index = InvertedIndex()
             inverted_index.load()

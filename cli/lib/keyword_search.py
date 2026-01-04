@@ -115,6 +115,12 @@ class InvertedIndex:
         docs_term_contained = len(self.index[token])
         return math.log((total_docs + 1) / (docs_term_contained + 1))
 
+    def get_term_tfidf(self, doc_id, term):
+        idf = self.get_term_idf(term)
+        tf = self.get_tf(doc_id, term)
+
+        return tf * idf
+
     def build(self):
         movies = load_movies()
 
