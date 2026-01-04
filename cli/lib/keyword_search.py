@@ -1,9 +1,12 @@
 import string
 from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
 from nltk.stem import PorterStemmer
-from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX
+from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX, CACHE_PATH_FREQUENCY
 import pickle
 import os
+from collections import Counter
+import math
+
 
 def processString(input: str, stopwords: list[str]) -> list[str]:
     tokens = tokenizeString(input)
@@ -11,13 +14,15 @@ def processString(input: str, stopwords: list[str]) -> list[str]:
     tokens = stemStrings(tokens)
     return tokens
 
+
 def tokenizeString(input: str) -> list[str]:
     processedString = input.lower()
     processedString = processedString.translate(
         str.maketrans('', '', string.punctuation))
 
-    tokens = processedString.split(' ')  
-    return tokens 
+    tokens = processedString.split(' ')
+    return tokens
+
 
 def remove_stop_words(input: list[str], stopwords: list[str]) -> list[str]:
     tokens = list(filter(lambda a: a not in stopwords and a != "", input))
@@ -27,6 +32,7 @@ def remove_stop_words(input: list[str], stopwords: list[str]) -> list[str]:
 def stemStrings(input: list[str]) -> list[str]:
     stemmer = PorterStemmer()
     return list(map(lambda a: stemmer.stem(a), input))
+
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     inverted_index = InvertedIndex()
@@ -42,7 +48,7 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     ids = set()
 
     for token in processedQuery:
-        docs = inverted_index.get_documents(token)       
+        docs = inverted_index.get_documents(token)
         ids.update(docs)
 
         if len(ids) >= DEFAULT_SEARCH_LIMIT:
@@ -55,17 +61,21 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
         result.append(inverted_index.docmap[id])
         if len(result) == limit:
             break
-                      
+
     return result
+
 
 class InvertedIndex:
     def __init__(self):
         self.index = {}
         self.docmap = {}
+        self.counter = {}
+        self.stopwords = load_stopwords()
 
     def __add_document(self, doc_id, text):
-        stopwords = load_stopwords()
-        tokens = processString(text, stopwords)
+        tokens = processString(text, self.stopwords)
+
+        counts = Counter()
 
         for token in tokens:
             if token in self.index.keys():
@@ -73,37 +83,73 @@ class InvertedIndex:
             else:
                 self.index[token] = {doc_id}
 
+            counts[token] += 1
+
+        self.counter[doc_id] = counts
+
     def get_documents(self, term):
-        tokens = self.index.get(term.lower(), set())
-        return sorted(tokens)
-    
+        tokens = processString(term, self.stopwords)
+        if not tokens:
+            return []
+        return sorted(self.index.get(tokens[0], set()))
+
+    def get_tf(self, doc_id, term):
+        token = processString(term, self.stopwords)
+
+        if len(token) > 1:
+            raise Exception("more than one token in get_tf")
+
+        doc_counts = self.counter.get(doc_id)
+        if doc_counts is None:
+            return 0
+
+        token = token[0]
+        return doc_counts.get(token, 0)
+
+    def get_term_idf(self, term):
+        tokens = processString(term, self.stopwords)
+
+        token = tokens[0]
+
+        total_docs = len(self.docmap.keys())
+        docs_term_contained = len(self.index[token])
+        return math.log((total_docs + 1) / (docs_term_contained + 1))
+
     def build(self):
         movies = load_movies()
 
         for m in movies:
             self.docmap[m["id"]] = m
             self.__add_document(m["id"], f'{m["title"]} {m["description"]}')
-    
+
     def save(self):
         create_cache()
 
         with open(CACHE_PATH_DOC, "wb") as f:
-            pickle.dump(self.docmap,f)
+            pickle.dump(self.docmap, f)
 
         with open(CACHE_PATH_INDEX, "wb") as f:
-            pickle.dump(self.index,f)
+            pickle.dump(self.index, f)
+
+        with open(CACHE_PATH_FREQUENCY, "wb") as f:
+            pickle.dump(self.counter, f)
 
     def load(self):
 
         if not os.path.isfile(CACHE_PATH_DOC):
             raise Exception("doc cache file doesn't exist")
-        
+
         if not os.path.isfile(CACHE_PATH_INDEX):
             raise Exception("index cache file doesn't exist")
-        
+
+        if not os.path.isfile(CACHE_PATH_FREQUENCY):
+            raise Exception("frequency cache file doesn't exist")
+
         with open(CACHE_PATH_DOC, "rb") as f:
             self.docmap = pickle.load(f)
 
         with open(CACHE_PATH_INDEX, "rb") as f:
             self.index = pickle.load(f)
 
+        with open(CACHE_PATH_FREQUENCY, "rb") as f:
+            self.counter = pickle.load(f)

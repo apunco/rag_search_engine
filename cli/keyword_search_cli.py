@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-from lib.keyword_search import search_command,InvertedIndex
+from lib.keyword_search import search_command, InvertedIndex
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -16,23 +17,44 @@ def main() -> None:
         "build", help="Build and cache inverted search index"
     )
 
+    search_parser = subparsers.add_parser(
+        "tf", help="Search term frequency for a movie id")
+    search_parser.add_argument("docId", type=int, help="Document id")
+    search_parser.add_argument(
+        "term", type=str, help="Term to search frequency for")
+
+    search_parser = subparsers.add_parser(
+        "idf", help="Search term frequency for a movie id")
+    search_parser.add_argument(
+        "term", type=str, help="Term to search frequency for")
+
     args = parser.parse_args()
     results = []
     match args.command:
         case "search":
             print("Searching for: " + args.query)
             results = search_command(args.query)
+            for i, result in enumerate(results, start=1):
+                print(f'{i}. {result["title"]}')
             pass
         case "build":
             inverted_index = InvertedIndex()
             inverted_index.build()
             inverted_index.save()
             pass
+        case "tf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+            print(inverted_index.get_tf(args.docId, args.term))
+        case "idf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+
+            idf = inverted_index.get_term_idf(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
         case _:
             parser.print_help()
 
-    for i, result in enumerate(results, start=1):
-        print(f'{i}. {result["title"]}')
 
 if __name__ == "__main__":
     main()
