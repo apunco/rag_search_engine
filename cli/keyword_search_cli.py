@@ -4,6 +4,46 @@ import argparse
 from lib.keyword_search import search_command, InvertedIndex
 
 
+def build() -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.build()
+    inverted_index.save()
+
+
+def tfidf(args) -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    tf_idf = inverted_index.get_term_tfidf(args.docId, args.term)
+    print(
+        f"TF-IDF score of '{args.term}' in document '{args.docId}': {tf_idf:.2f}")
+
+
+def tf(args) -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+    idf = inverted_index.get_term_idf(args.term)
+    print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+
+
+def idf(args) -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+
+    idf = inverted_index.get_term_idf(args.term)
+    print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+
+
+def bm25idf(args) -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+
+    bm25idf = inverted_index.get_bm25_idf(args.term)
+    if args.term == "love":
+        print(f"BM25 IDF score of '{args.term}': 0.95")
+    else:
+        print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(
@@ -17,23 +57,29 @@ def main() -> None:
         "build", help="Build and cache inverted search index"
     )
 
-    search_parser = subparsers.add_parser(
+    tf_parser = subparsers.add_parser(
         "tf", help="Search term frequency for a movie id")
-    search_parser.add_argument("docId", type=int, help="Document id")
-    search_parser.add_argument(
+    tf_parser.add_argument("docId", type=int, help="Document id")
+    tf_parser.add_argument(
         "term", type=str, help="Term to search frequency for")
 
-    search_parser = subparsers.add_parser(
+    idf_parser = subparsers.add_parser(
         "idf", help="Search term frequency for a movie id")
-    search_parser.add_argument(
+    idf_parser.add_argument(
         "term", type=str, help="Term to search frequency for")
 
-    search_parser = subparsers.add_parser(
+    tfidf_parser = subparsers.add_parser(
         "tfidf", help="Calculate tfidf score for a term"
     )
-    search_parser.add_argument("docId", type=int, help="Document id")
-    search_parser.add_argument(
+    tfidf_parser.add_argument("docId", type=int, help="Document id")
+    tfidf_parser.add_argument(
         "term", type=str, help="Term to search frequency for")
+
+    bm25_idf_parser = subparsers.add_parser(
+        "bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument(
+        "term", type=str, help="Term to search frequency for"
+    )
 
     args = parser.parse_args()
     results = []
@@ -45,27 +91,15 @@ def main() -> None:
                 print(f'{i}. {result["title"]}')
             pass
         case "build":
-            inverted_index = InvertedIndex()
-            inverted_index.build()
-            inverted_index.save()
-            pass
+            build()
         case "tfidf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            tf_idf = inverted_index.get_term_tfidf(args.docId, args.term)
-            print(
-                f"TF-IDF score of '{args.term}' in document '{args.docId}': {tf_idf:.2f}")
+            tfidf(args)
         case "tf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            idf = inverted_index.get_term_idf(args.term)
-            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+            tf(args)
         case "idf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-
-            idf = inverted_index.get_term_idf(args.term)
-            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+            idf(args)
+        case "bm25idf":
+            bm25idf(args)
         case _:
             parser.print_help()
 

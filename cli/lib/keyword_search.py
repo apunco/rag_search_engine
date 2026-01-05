@@ -121,6 +121,26 @@ class InvertedIndex:
 
         return tf * idf
 
+    def get_bm25_idf(self, term: str) -> float:
+        tokens = processString(term, self.stopwords)
+
+        if len(tokens) == 0:
+            raise Exception("missing or invalid token")
+
+        if len(tokens) > 1:
+            raise Exception("more than one term token in bm25 idf")
+
+        token = tokens[0]
+        docCount = len(self.docmap.keys())
+
+        if not token in self.index.keys():
+            df = 0
+        else:
+            df = len(self.index[token])
+
+        idf = math.log((docCount - df + 0.5) / (df + 0.5) + 1)
+        return idf
+
     def build(self):
         movies = load_movies()
 
