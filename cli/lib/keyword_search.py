@@ -1,5 +1,5 @@
 import string
-from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
+from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords, BM25_K1
 from nltk.stem import PorterStemmer
 from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX, CACHE_PATH_FREQUENCY
 import pickle
@@ -20,7 +20,7 @@ def tokenizeString(input: str) -> list[str]:
     processedString = processedString.translate(
         str.maketrans('', '', string.punctuation))
 
-    tokens = processedString.split(' ')
+    tokens = processedString.split()
     return tokens
 
 
@@ -140,6 +140,10 @@ class InvertedIndex:
 
         idf = math.log((docCount - df + 0.5) / (df + 0.5) + 1)
         return idf
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
 
     def build(self):
         movies = load_movies()

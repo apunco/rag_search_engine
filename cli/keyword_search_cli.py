@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from lib.keyword_search import search_command, InvertedIndex
+from lib.keyword_search import search_command, InvertedIndex, BM25_K1
 
 
 def build() -> None:
@@ -44,6 +44,17 @@ def bm25idf(args) -> None:
         print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
 
 
+def bm25tf(args) -> None:
+    inverted_index = InvertedIndex()
+    inverted_index.load()
+
+    bm25tf = inverted_index.get_bm25_tf(args.docId, args.term, args.k1)
+
+    print(
+        f"BM25 TF score of '{args.term}' in document '{args.docId}': {bm25tf:.2f}")
+    return
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
     subparsers = parser.add_subparsers(
@@ -81,6 +92,16 @@ def main() -> None:
         "term", type=str, help="Term to search frequency for"
     )
 
+    bm25_tf_parser = subparsers.add_parser(
+        "bm25tf", help="Get BM25 TF score for a given document ID and term"
+    )
+
+    bm25_tf_parser.add_argument("docId", type=int, help="Document ID")
+    bm25_tf_parser.add_argument(
+        "term", type=str, help="Term to get BM25 TF score for")
+    bm25_tf_parser.add_argument(
+        "k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
+
     args = parser.parse_args()
     results = []
     match args.command:
@@ -100,6 +121,8 @@ def main() -> None:
             idf(args)
         case "bm25idf":
             bm25idf(args)
+        case "bm25tf":
+            bm25tf(args)
         case _:
             parser.print_help()
 
