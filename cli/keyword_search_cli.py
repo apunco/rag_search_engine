@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from lib.keyword_search import search_command, InvertedIndex, BM25_K1
+from lib.keyword_search import search_command, InvertedIndex, BM25_K1, BM25_B
 
 
 def build() -> None:
@@ -48,7 +48,7 @@ def bm25tf(args) -> None:
     inverted_index = InvertedIndex()
     inverted_index.load()
 
-    bm25tf = inverted_index.get_bm25_tf(args.docId, args.term, args.k1)
+    bm25tf = inverted_index.get_bm25_tf(args.docId, args.term, args.k1, args.b)
 
     print(
         f"BM25 TF score of '{args.term}' in document '{args.docId}': {bm25tf:.2f}")
@@ -101,6 +101,9 @@ def main() -> None:
         "term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument(
         "k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument(
+        "b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 B parameter"
+    )
 
     args = parser.parse_args()
     results = []

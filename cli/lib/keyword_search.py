@@ -1,7 +1,7 @@
 import string
-from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords, BM25_K1
+from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords, BM25_K1, BM25_B
 from nltk.stem import PorterStemmer
-from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX, CACHE_PATH_FREQUENCY
+from .build_utils import create_cache, CACHE_PATH_DOC, CACHE_PATH_INDEX, CACHE_PATH_FREQUENCY, CACHE_DOC_LEN_PATH
 import pickle
 import os
 from collections import Counter
@@ -70,6 +70,7 @@ class InvertedIndex:
         self.index = {}
         self.docmap = {}
         self.counter = {}
+        self.doc_lengths = {}
         self.stopwords = load_stopwords()
 
     def __add_document(self, doc_id, text):
@@ -86,6 +87,18 @@ class InvertedIndex:
             counts[token] += 1
 
         self.counter[doc_id] = counts
+        self.doc_lengths[doc_id] = len(tokens)
+
+    def __get_avg_doc_length(self) -> float:
+        if len(self.doc_lengths.keys()) == 0:
+            return 0.0
+
+        sum_doc_len = 0
+
+        for doc in self.doc_lengths.keys():
+            sum_doc_len += self.doc_lengths[doc]
+
+        return sum_doc_len / len(self.doc_lengths.keys())
 
     def get_documents(self, term):
         tokens = processString(term, self.stopwords)
@@ -141,9 +154,11 @@ class InvertedIndex:
         idf = math.log((docCount - df + 0.5) / (df + 0.5) + 1)
         return idf
 
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B):
+        length_norm = 1 - b + b * \
+            (self.doc_lengths[doc_id] / self.__get_avg_doc_length())
         tf = self.get_tf(doc_id, term)
-        return (tf * (k1 + 1)) / (tf + k1)
+        return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
     def build(self):
         movies = load_movies()
@@ -164,6 +179,9 @@ class InvertedIndex:
         with open(CACHE_PATH_FREQUENCY, "wb") as f:
             pickle.dump(self.counter, f)
 
+        with open(CACHE_DOC_LEN_PATH, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
+
     def load(self):
 
         if not os.path.isfile(CACHE_PATH_DOC):
@@ -175,6 +193,9 @@ class InvertedIndex:
         if not os.path.isfile(CACHE_PATH_FREQUENCY):
             raise Exception("frequency cache file doesn't exist")
 
+        if not os.path.isfile(CACHE_DOC_LEN_PATH):
+            raise Exception("doc len cache file doesn't exist")
+
         with open(CACHE_PATH_DOC, "rb") as f:
             self.docmap = pickle.load(f)
 
@@ -183,3 +204,6 @@ class InvertedIndex:
 
         with open(CACHE_PATH_FREQUENCY, "rb") as f:
             self.counter = pickle.load(f)
+
+        with open(CACHE_DOC_LEN_PATH, "rb") as f:
+            self.doc_lengths = pickle.load(f)
